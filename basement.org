@@ -1,0 +1,656 @@
+
+* Pairing w/ Denver
+
+#+NAME: reboot_6_into_bios
+#+BEGIN_SRC shell
+ipmitool -H 1.1.0.6 -U ADMIN -P ADMIN chassis bootparam set bootflag force_bios
+ipmi-chassis -h 1.1.0.6 --chassis-control=power-cycle -u ADMIN -p ADMIN
+#+END_SRC
+
+#+NAME: attached iso as cdrom via cmdline
+#+BEGIN_SRC shell
+cat > /tmp/bootiso.ipmi << EOF
+vmwa dev2stop
+vmwa dev2iso /home/hh/Desktop/ubuntu-16.04-server-amd64.iso
+ipmi power reset
+ipmi power up
+EOF
+echo exec /tmp/bootiso.ipmi | SMCIPMITool 192.168.3.31 ADMIN ADMIN shell
+#+END_SRC
+
+Then start up './SMCIPMITool 192.168.3.31 ADMIN ADMIN shell', and run
+'exec /path/to/filename.ipmi' leaving the shell open until we finish with the disk.
+
+* Packages
+
+** SMC IPMI Tool from SuperMicro
+
+ftp://ftp.supermicro.com/utility/SMCIPMItool/Linux/
+http://www.supermicro.com/products/nfo/files/SSM/SSM_brochure.pdf
+SFT-OOB-LIC Per node license for OOB BIOS management mechanism
+SFT-SCM-LIC Per node license for Command Management Utility
+SFT-SPM-LIC Per node license for Power Management Utility
+
+** freeipmi
+$ pacman -Qo /usr/bin/ipmi-chassis
+/usr/bin/ipmi-chassis is owned by freeipmi 1.4.5-1
+
+ipmi-chassis -h 192.168.3.3[2-8] -u ADMIN -p ADMIN --chassis-control=power-up
+ipmi-chassis -h 192.168.3.3[2-8] -u ADMIN -p ADMIN --chassis-control=power-down
+
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --get-status
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --chassis-control=power-down
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --chassis-control=power-up
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --chassis-control=hard-reset
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --chassis-control=power-cycle
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --chassis-control=soft-shutdown
+
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --get-system-restart-cause
+ipmi-chassis -h 192.168.3.116 -u ADMIN -p ADMIN --get-power-on-hours-counter
+
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --chassis-identify=120
+ipmi-chassis -h 192.168.3.113 -u ADMIN -p ADMIN --chassis-identify=turn-off
+
+
+
+
+* ipmitool
+modprobe ipmi_devintf
+modprobe ipmi_si
+** lan print
+Set in Progress         : Set Complete
+Auth Type Support       : NONE MD2 MD5 PASSWORD 
+Auth Type Enable        : Callback : MD2 MD5 PASSWORD 
+                        : User     : MD2 MD5 PASSWORD 
+                        : Operator : MD2 MD5 PASSWORD 
+                        : Admin    : MD2 MD5 PASSWORD 
+                        : OEM      : MD2 MD5 PASSWORD 
+IP Address Source       : DHCP Address
+IP Address              : 192.168.3.31
+Subnet Mask             : 255.255.255.0
+MAC Address             : 00:25:90:7e:a7:0d
+SNMP Community String   : public
+IP Header               : TTL=0x00 Flags=0x00 Precedence=0x00 TOS=0x00
+BMC ARP Control         : ARP Responses Enabled, Gratuitous ARP Disabled
+Default Gateway IP      : 192.168.3.1
+Default Gateway MAC     : f8:7b:8c:17:28:ad
+Backup Gateway IP       : 0.0.0.0
+Backup Gateway MAC      : 00:00:00:00:00:00
+802.1q VLAN ID          : Disabled
+802.1q VLAN Priority    : 0
+RMCP+ Cipher Suites     : 1,2,3,6,7,8,11,12
+Cipher Suite Priv Max   : aaaaXXaaaXXaaXX
+                        :     X=Cipher Suite Unused
+                        :     c=CALLBACK
+                        :     u=USER
+                        :     o=OPERATOR
+                        :     a=ADMIN
+                        :     O=OEM
+
+** lan set
+
+usage: lan set <channel> <command> <parameter>
+
+LAN set command/parameter options:
+  ipaddr <x.x.x.x>               Set channel IP address
+  netmask <x.x.x.x>              Set channel IP netmask
+  macaddr <x:x:x:x:x:x>          Set channel MAC address
+  defgw ipaddr <x.x.x.x>         Set default gateway IP address
+  defgw macaddr <x:x:x:x:x:x>    Set default gateway MAC address
+  bakgw ipaddr <x.x.x.x>         Set backup gateway IP address
+  bakgw macaddr <x:x:x:x:x:x>    Set backup gateway MAC address
+  password <password>            Set session password for this channel
+  snmp <community string>        Set SNMP public community string
+  user                           Enable default user for this channel
+  access <on|off>                Enable or disable access to this channel
+  alert <on|off>                 Enable or disable PEF alerting for this channel
+  arp respond <on|off>           Enable or disable BMC ARP responding
+  arp generate <on|off>          Enable or disable BMC gratuitous ARP generation
+  arp interval <seconds>         Set gratuitous ARP generation interval
+  vlan id <off|<id>>             Disable or enable VLAN and set ID (1-4094)
+  vlan priority <priority>       Set vlan priority (0-7)
+  auth <level> <type,..>         Set channel authentication types
+    level  = CALLBACK, USER, OPERATOR, ADMIN
+    type   = NONE, MD2, MD5, PASSWORD, OEM
+  ipsrc <source>                 Set IP Address source
+    none   = unspecified source
+    static = address manually configured to be static
+    dhcp   = address obtained by BMC running DHCP
+    bios   = address loaded by BIOS or system software
+  cipher_privs XXXXXXXXXXXXXXX   Set RMCP+ cipher suite privilege levels
+    X = Cipher Suite Unused
+    c = CALLBACK
+    u = USER
+    o = OPERATOR
+    a = ADMIN
+    O = OEM
+
+
+** chassis status
+System Power         : on
+Power Overload       : false
+Power Interlock      : inactive
+Main Power Fault     : false
+Power Control Fault  : false
+Power Restore Policy : previous
+Last Power Event     : 
+Chassis Intrusion    : inactive
+Front-Panel Lockout  : inactive
+Drive Fault          : false
+Cooling/Fan Fault    : false
+
+** chassis power status, on, off, cycle, reset, diag, soft
+ipmitool> chassis power status
+Chassis Power is on
+** chassis identify
+Chassis identify interval: default (15 seconds)
+ipmitool> 
+** chassis policy
+chassis policy <state>
+   list        : return supported policies
+   always-on   : turn on when power is restored
+   previous    : return to previous state when power is restored
+   always-off  : stay off after power is restored
+ipmitool> chassis policy list
+Supported chassis power policy:  previous
+** chassis restart_cause
+System restart cause: unknown
+** chassis poh
+POH Counter  : 0 days, 0 hours
+** chassis bootdev
+bootdev <device> [clear-cmos=yes|no]
+bootdev <device> [options=help,...]
+  none  : Do not change boot device order
+  pxe   : Force PXE boot
+  disk  : Force boot from default Hard-drive
+  safe  : Force boot from default Hard-drive, request Safe Mode
+  diag  : Force boot from Diagnostic Partition
+  cdrom : Force boot from CD/DVD
+  bios  : Force boot into BIOS Setup
+  floppy: Force boot from Floppy/primary removable media
+ipmitool> chassis bootdev disk options=help
+Legal options settings are:
+	help:	print this message
+	valid:	Boot flags valid
+	persistent:	Changes are persistent for all future boots
+	efiboot:	Extensible Firmware Interface Boot (EFI)
+	clear-cmos:	CMOS clear
+	lockkbd:	Lock Keyboard
+	screenblank:	Screen Blank
+	lockoutreset:	Lock out Resetbuttons
+	lockout_power:	Lock out (power off/sleep request) via Power Button
+	verbose=default:	Request quiet BIOS display
+	verbose=no:	Request quiet BIOS display
+	verbose=yes:	Request verbose BIOS display
+	force_pet:	Force progress event traps
+	upw_bypass:	User password bypass
+	lockout_sleep:	Log Out Sleep Button
+	cons_redirect=default:	Console redirection occurs per BIOS configuration setting
+	cons_redirect=skip:	Suppress (skip) console redirection if enabled
+	cons_redirect=enable:	Suppress (skip) console redirection if enabled
+
+** chassis bootparam 
+bootparam get <param #>
+bootparam set bootflag <device> [options=...]
+ Legal devices are:
+  none        : No override
+  force_pxe   : Force PXE boot
+  force_disk  : Force boot from default Hard-drive
+  force_safe  : Force boot from default Hard-drive, request Safe Mode
+  force_diag  : Force boot from Diagnostic Partition
+  force_cdrom : Force boot from CD/DVD
+  force_bios  : Force boot into BIOS Setup
+ Legal options are:
+  help    : print this message
+  PEF     : Clear valid bit on reset/power cycle cause by PEF
+  timeout : Automatically clear boot flag valid bit on timeout
+  watchdog: Clear valid bit on reset/power cycle cause by watchdog
+  reset   : Clear valid bit on push button reset/soft reset
+  power   : Clear valid bit on power up via power push button or wake event
+ Any Option may be prepended with no- to invert sense of operation
+** event
+
+usage: event <num>
+   Send generic test events
+   1 : Temperature - Upper Critical - Going High
+   2 : Voltage Threshold - Lower Critical - Going Low
+   3 : Memory - Correctable ECC
+
+usage: event file <filename>
+   Read and generate events from file
+   Use the 'sel save' command to generate from SEL
+
+usage: event <sensorid> <state> [event_dir]
+   sensorid  : Sensor ID string to use for event data
+   state     : Sensor state, use 'list' to see possible states for sensor
+   event_dir : assert, deassert [default=assert]
+
+** mc
+Not enough parameters given.
+MC Commands:
+  reset <warm|cold>
+  guid
+  info
+  watchdog <get|reset|off>
+  selftest
+  getenables
+  setenables <option=on|off> ...
+    recv_msg_intr         Receive Message Queue Interrupt
+    event_msg_intr        Event Message Buffer Full Interrupt
+    event_msg             Event Message Buffer
+    system_event_log      System Event Logging
+    oem0                  OEM 0
+    oem1                  OEM 1
+    oem2                  OEM 2
+  getsysinfo <argument>
+  setsysinfo <argument> <string>
+    primary_os_name     Primary operating system name
+    os_name             Operating system name
+    system_name         System Name of server(vendor dependent)
+    delloem_os_version  Running version of operating system
+    delloem_url         URL of BMC webserver
+
+*** mc guid
+System GUID  : 31303037-534d-2500-907e-a70d00000000
+Timestamp    : 02/25/1996 01:47:35
+*** mc info
+Device ID                 : 32
+Device Revision           : 1
+Firmware Revision         : 3.19
+IPMI Version              : 2.0
+Manufacturer ID           : 10876
+Manufacturer Name         : Supermicro
+Product ID                : 1640 (0x0668)
+Product Name              : Unknown (0x668)
+Device Available          : yes
+Provides Device SDRs      : no
+Additional Device Support :
+    Sensor Device
+    SDR Repository Device
+    SEL Device
+    FRU Inventory Device
+    IPMB Event Receiver
+    IPMB Event Generator
+    Chassis Device
+
+*** mc  getenables
+Receive Message Queue Interrupt          : enabled
+Event Message Buffer Full Interrupt      : disabled
+Event Message Buffer                     : enabled
+System Event Logging                     : enabled
+OEM 0                                    : disabled
+OEM 1                                    : disabled
+OEM 2                                    : disabled
+
+
+**	sdr           Print Sensor Data Repository entries and readings
+CPU Temp         | 36 degrees C      | ok
+System Temp      | 27 degrees C      | ok
+Peripheral Temp  | 37 degrees C      | ok
+PCH Temp         | 45 degrees C      | ok
+FAN 1            | 3450 RPM          | ok
+Vcore            | 0.86 Volts        | ok
+3.3VCC           | 3.31 Volts        | ok
+12V              | 11.98 Volts       | ok
+VDIMM            | 1.50 Volts        | ok
+5VCC             | 5.02 Volts        | ok
+VBAT             | 3.22 Volts        | ok
+VSB              | 3.31 Volts        | ok
+AVCC             | 3.31 Volts        | ok
+PS Status        | 0x01              | ok
+
+** sensor
+CPU Temp         | 37.000     | degrees C  | ok    | 0.000     | 0.000     | 0.000     | 86.000    | 89.000    | 91.000    
+System Temp      | 27.000     | degrees C  | ok    | -9.000    | -7.000    | -5.000    | 80.000    | 85.000    | 90.000    
+Peripheral Temp  | 37.000     | degrees C  | ok    | -9.000    | -7.000    | -5.000    | 80.000    | 85.000    | 90.000    
+PCH Temp         | 45.000     | degrees C  | ok    | -11.000   | -8.000    | -5.000    | 90.000    | 95.000    | 100.000   
+FAN 1            | 3450.000   | RPM        | ok    | 300.000   | 450.000   | 600.000   | 18975.000 | 19050.000 | 19125.000 
+Vcore            | 0.816      | Volts      | ok    | 0.480     | 0.512     | 0.544     | 1.488     | 1.520     | 1.552     
+3.3VCC           | 3.312      | Volts      | ok    | 2.816     | 2.880     | 2.944     | 3.584     | 3.648     | 3.712     
+12V              | 11.978     | Volts      | ok    | 10.494    | 10.600    | 10.706    | 13.091    | 13.197    | 13.303    
+VDIMM            | 1.496      | Volts      | ok    | 1.152     | 1.216     | 1.280     | 1.760     | 1.776     | 1.792     
+5VCC             | 5.024      | Volts      | ok    | 4.096     | 4.320     | 4.576     | 5.344     | 5.600     | 5.632     
+VBAT             | 3.216      | Volts      | ok    | 2.816     | 2.880     | 2.944     | 3.584     | 3.648     | 3.712     
+VSB              | 3.312      | Volts      | ok    | 2.816     | 2.880     | 2.944     | 3.584     | 3.648     | 3.712     
+AVCC             | 3.312      | Volts      | ok    | 2.816     | 2.880     | 2.944     | 3.584     | 3.648     | 3.712     
+PS Status        | 0x1        | discrete   | 0x0100| na        | na        | na        | na        | na        | na        
+
+**	fru           Print built-in FRU and scan SDR for FRU locators
+FRU Device Description : Builtin FRU Device (ID 0)
+ Board Mfg Date        : Sun Dec 31 16:00:00 1995
+ Board Mfg             : Supermicro
+ Board Serial          :           
+ Product Serial        :           
+
+* sel Print System Event Log (SEL)
+SEL Information
+Version          : 1.5 (v1.5, v2 compliant)
+Entries          : 512
+Free Space       : 0 bytes 
+Percent Used     : 100%
+Last Add Time    : 10/05/2014 21:10:27
+Last Del Time    : Not Available
+Overflow         : true
+Supported Cmds   : 'Reserve' 'Get Alloc Info' 
+# of Alloc Units : 512
+Alloc Unit Size  : 20
+# Free Units     : 0
+Largest Free Blk : 0
+Max Record Size  : 20
+**	pef           Configure Platform Event Filtering (PEF)
+ 0x51 | 16 | 16 | 37303031-4d53-0025-907e-a70d00000000 | Alert,Power-off,Reset,Power-cycle,OEM-defined
+**	sol           Configure and connect IPMIv2.0 Serial-over-LAN
+
+SOL Commands: info [<channel number>]
+              set <parameter> <value> [channel]
+              payload <enable|disable|status> [channel] [userid]
+              activate [<usesolkeepalive|nokeepalive>] [instance=<number>]
+              deactivate [instance=<number>]
+              looptest [<loop times> [<loop interval(in ms)> [<instance>]]]
+*** sol info
+Set in progress                 : set-complete
+Enabled                         : true
+Force Encryption                : false
+Force Authentication            : false
+Privilege Level                 : USER
+Character Accumulate Level (ms) : 0
+Character Send Threshold        : 0
+Retry Count                     : 0
+Retry Interval (ms)             : 0
+Volatile Bit Rate (kbps)        : 115.2
+Non-Volatile Bit Rate (kbps)    : 115.2
+Payload Channel                 : 1 (0x01)
+Payload Port                    : 623
+
+** user Configure Management Controller users
+User Commands:
+		   summary      [<channel number>]
+		   list         [<channel number>]
+		   set name     <user id> <username>
+		   set password <user id> [<password>]
+		   disable      <user id>
+		   enable       <user id>
+		   priv         <user id> <privilege level> [<channel number>]
+		   test         <user id> <16|20> [<password]>
+
+ipmitool> user summary
+Maximum IDs	    : 10
+Enabled User Count  : 2
+Fixed Name Count    : 2
+ipmitool> user list
+ID  Name	     Callin  Link Auth	IPMI Msg   Channel Priv Limit
+2   ADMIN            true    false      false      Unknown (0x00)
+** channel       Configure Management Controller channels
+hannel
+Channel Commands: authcap   <channel number> <max privilege>
+                  getaccess <channel number> [user id]
+                  setaccess <channel number> <user id> [callin=on|off] [ipmi=on|off] [link=on|off] [privilege=level]
+                  info      [channel number]
+                  getciphers <ipmi | sol> [channel]
+
+Possible privilege levels are:
+   1   Callback level
+   2   User level
+   3   Operator level
+   4   Administrator level
+   5   OEM Proprietary level
+  15   No access
+ipmitool> channel info
+Channel 0xf info:
+  Channel Medium Type   : System Interface
+  Channel Protocol Type : KCS
+  Session Support       : session-less
+  Active Session Count  : 0
+  Protocol Vendor ID    : 7154
+ipmitool> channel getciphers ipmi
+Get Channel Cipher Suites failed: Invalid data field in request
+ipmitool> channel getciphers ipmi 1
+ID   IANA    Auth Alg        Integrity Alg   Confidentiality Alg
+0    N/A     none            none            none           
+1    N/A     hmac_sha1       none            none           
+2    N/A     hmac_sha1       hmac_sha1_96    none           
+3    N/A     hmac_sha1       hmac_sha1_96    aes_cbc_128    
+4    N/A     hmac_sha1       hmac_sha1_96    xrc4_128       
+5    N/A     hmac_sha1       hmac_sha1_96    xrc4_40        
+6    N/A     hmac_md5        none            none           
+7    N/A     hmac_md5        hmac_md5_128    none           
+8    N/A     hmac_md5        hmac_md5_128    aes_cbc_128    
+9    N/A     hmac_md5        hmac_md5_128    xrc4_128       
+10   N/A     hmac_md5        hmac_md5_128    xrc4_40        
+11   N/A     hmac_md5        md5_128         none           
+12   N/A     hmac_md5        md5_128         aes_cbc_128    
+13   N/A     hmac_md5        md5_128         xrc4_128       
+14   N/A     hmac_md5        md5_128         xrc4_40        
+
+
+
+** session info all
+** dcmi discover
+    Supported DCMI capabilities:
+
+         Mandatory platform capabilties
+        Identification support available
+        SEL logging available
+        Chassis power available
+        Temperature monitor available
+
+         Optional platform capabilties
+        Power management available
+
+         Managebility access capabilties
+        In-band KCS channel available
+        Out-of-band primary LAN channel available
+        SOL enabled
+        VLAN capable
+
+    Mandatory platform attributes:
+
+         SEL Attributes: 
+               SEL automatic rollover is not present
+               512 SEL entries
+
+         Identification Attributes: 
+        GUID
+        Asset tag
+
+         Temperature Monitoring Attributes: 
+        inlet
+        cpu
+        baseboard
+
+    Optional Platform Attributes: 
+
+         Power Management:
+                Slave address of device: 20h (8bits)(Satellite/External controller)
+                Channel number is 0h (Primary BMC)
+                    Device revision is 1 
+
+    Manageability Access Attributes: 
+         Primary LAN channel number: 1 is available
+         Secondary LAN channel is not available for OOB
+         No serial channel is available
+
+** dcmi power reading
+
+    Instantaneous power reading:                    66 Watts
+    Minimum during sampling period:                 35 Watts
+    Maximum during sampling period:                134 Watts
+    Average power reading over sample period:       61 Watts
+    IPMI timestamp:                           Sun Oct  5 20:53:31 2014
+    Sampling period:                          519348000 Milliseconds
+    Power reading state is:                   activated
+
+
+** sudo ipmitool dcmi set_mc_id_string MYBLADE
+** sudo ipmitool dcmi get_mc_id_string 
+
+ Get Management Controller Identifier String: MYBLADE
+
+
+
+
+* Misc
+
+1.1.0.0
+1.1.1.0
+1.1.2.0
+
+/ 10.0.0.0 / 192.168.0.0
+/ 10.1.1.0 or 10.10.10.0 / 192.168.192.0
+/ 10.20.30.0 / 192.168.168.0
+172.16.0.0
+172.16.n15.0
+
+# 2960-S
+# was at 12.2(38) and 12.2(55) is required for ip routing
+
+Slot 8 was at IPI 1.66, and didn't work wel
+# Upgraded everyone to http://www.supermicro.com/about/policies/disclaimer.cfm?url=/support/resources/getfile.aspx?ID=2681
+# SMT_X9_319.zip
+# Sled at at v1.66 had to be upgraded using the webui, Maintenance->FirmewareUpdate->Enter Update Mode and upload SMT_X9_319.bin
+# The others were all IPMI v1.89 and were able to be upgraded via the command line
+# ./Linux1.21/lUpdate -f ./SMT_X9_319.bin -i lan -h 192.168.3.119 623 -u ADMIN -p ADMIN -r y
+
+
+# Password change?
+# slot 1 / ?? / 3.19
+00:25:90:7e:a7:0d
+00:25:90:97:9d:7a
+00:25:90:97:9d:7b
+
+# slot 2 / 1.0a / 3.19
+00:25:90:7e:a0:94
+00:25:90:97:a4:be
+00:25:90:97:a4:bf
+
+# slot 3 / 3.00 / 3.19
+00:25:90:db:8a:fe
+00:25:90:e2:52:b8
+00:25:90:e2:52:b9
+
+# slot 4 / 3.00 / 3.19
+00:25:90:db:8a:f9
+00:25:90:e2:54:ec
+00:25:90:e2:54:ed
+
+# slot 5 / 3.00 / 3.19
+00:25:90:db:8a:75
+00:25:90:e2:52:42
+00:25:90:e2:52:43
+
+# slot 6 / 3.00 / 3.19
+00:25:90:db:8b:6f
+00:25:90:e2:4c:c2
+00:25:90:e2:4c:c3
+
+# slot 7 / 1.0a / 3.19
+00:25:90:7e:a1:3a
+00:25:90:97:9f:58
+00:25:90:97:9f:59
+
+# slot 8 / 1.0a / 3.19
+00:25:90:7e:a6:6c
+00:25:90:97:d4:78
+00:25:90:97:d4:79
+
+
+192.168.3.119 0025907ea70d # slot 1 / ??
+192.168.3.113 0025907ea094 # slot 2 / 1.0a
+192.168.3.114 002590db8afe # slot 3 / 3.00
+192.168.3.120 002590db8af9 # slot 4 / 3.00
+192.168.3.115 002590db8a75 # slot 5 / 3.00
+192.168.3.116 002590db8b6f # slot 6 / 3.00
+192.168.3.117 0025907ea13a # slot 7 / 1.0a
+192.168.3.118 0025907ea66c # slot 8 / 1.0a
+
+
+
+
+ ./SMCIPMITool 192.168.3.31 ADMIN ADMIN find 192.168.3.31 192.168.3.38 255.255.255.0
+
+
+
+
+http://www.smicro.cz/userfiles/downloads/SMCIPMITool_User_Guide.pdf
+
+host add s1 191.168.1.31 ADMIN ADMIN
+host add s2 192.168.1.32 ADMIN ADMIN
+host add s3 193.168.1.33 ADMIN ADMIN
+host add s4 194.168.1.34 ADMIN ADMIN
+host add s5 195.168.1.35 ADMIN ADMIN
+host add s6 196.168.1.36 ADMIN ADMIN
+host add s7 197.168.1.37 ADMIN ADMIN
+host add s8 198.168.1.38 ADMIN ADMIN
+host group add cloud
+host group addhost cloud s2
+host group addhost cloud s3
+host group addhost cloud s4
+host group addhost cloud s5
+host group addhost cloud s6
+host group addhost cloud s7
+host group addhost cloud s8
+
+
+
+There is an interactive shell:
+
+./SMCIPMITool 192.168.3.31 ADMIN ADMIN shell
+
+And the shell has all the other commands and that includes 'exec ./filename.ipmi'
+
+If you create a script that includes a dev2iso, I think it starts a
+daemon that there can only be one per SMCIPMITool process.
+
+I've tried running multiple dev2iso's to multiple VMs but it fails silently
+with the Hardware not detecting the devices.
+
+I also noticed that the process needs to be long running.
+'./SMCIPMITool 192.168.3.31 ADMIN ADMIN exec /path/to/filename.ipmi'
+exits and closes down the ISO export process.
+
+So for now we have to create the file:
+
+cat > /tmp/bootiso.ipmi < EOF
+vmwa dev2stop
+vmwa dev2iso /home/hh/chef/bento/iso/en_windows_server_2012_r2_vl_x64_dvd_3319595.iso
+ipmi power reset
+ipmi power up
+EOF
+
+Then start up './SMCIPMITool 192.168.3.31 ADMIN ADMIN shell', and run
+'exec /path/to/filename.ipmi' leaving the shell open until we finish with the disk.
+
+
+
+
+
+# As root
+
+vmwa dev1list
+2: [sdb: SCSI Disk]
+3: [sda1: SCSI Disk]
+4: [sda5: SCSI Disk]
+5: [sda4: SCSI Disk]
+6: [sda3: SCSI Disk]
+7: [sda2: SCSI Disk]
+
+
+>ipmi power cycle ?
+Available commands:
+status                   power status
+up                       power up system
+down                     power down system
+softshutdown             power softshotdown
+reset                    power reset
+bootoption <Index>       Force a boot device in next boot only
+cycle [interval]         power cycle
+diag                     pulse diagnostic interrupt
+
+
+For bootoption index :
+1: PXE            2:  Hard-drive
+3: CD/DVD         4:  Bios
+5: USB KEY        6:  USB HDD
+7: USB Floppy     8:  USB CD/DVD
+9: UEFI USB KEY   10: UEFI CD/DVD
+Ex: set power cycle interval as 10 seconds and execute power
